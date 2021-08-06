@@ -12,57 +12,71 @@ artifacts {
 group = PUBLISH_GROUP_ID
 version = PUBLISH_VERSION
 
-afterEvaluate {
-    publishing {
-        publications {
-            release(MavenPublication) {
-                // The coordinates of the library, being set from variables that
-                // we'll set up later
-                groupId PUBLISH_GROUP_ID
-                artifactId PUBLISH_ARTIFACT_ID
-                version PUBLISH_VERSION
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
 
-                // Three artifacts: jar, sources and javadoc
-                artifact jar
-                artifact sourcesJar
-                artifact javadocJar
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            artifactId PUBLISH_ARTIFACT_ID
+            from components.java
 
-                // Mostly self-explanatory metadata
-                pom {
-                    name = PUBLISH_ARTIFACT_ID
-                    description = 'Swift Android Gradle plugin'
+            versionMapping {
+                usage('java-api') {
+                    fromResolutionOf('runtimeClasspath')
+                }
+                usage('java-runtime') {
+                    fromResolutionResult()
+                }
+            }
+
+            // Mostly self-explanatory metadata
+            pom {
+                name = PUBLISH_ARTIFACT_ID
+                description = 'Swift Android Gradle plugin'
+                url = 'https://github.com/readdle/swift-android-gradle'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://github.com/readdle/swift-android-gradle/blob/master/LICENSE'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'andriydruk'
+                        name = 'Andrew Druk'
+                        email = 'adruk@readdle.com'
+                    }
+                }
+
+                // Version control info - if you're using GitHub, follow the
+                // format as seen here
+                scm {
+                    connection = 'scm:git:github.com/readdle/swift-android-gradle.git'
+                    developerConnection = 'scm:git:ssh://github.com/readdle/swift-android-gradle.git'
                     url = 'https://github.com/readdle/swift-android-gradle'
-                    licenses {
-                        license {
-                            name = 'MIT License'
-                            url = 'https://github.com/readdle/swift-android-gradle/blob/master/LICENSE'
-                        }
-                    }
-                    developers {
-                        developer {
-                            id = 'andriydruk'
-                            name = 'Andrew Druk'
-                            email = 'adruk@readdle.com'
-                        }
-                    }
-
-                    // Version control info - if you're using GitHub, follow the
-                    // format as seen here
-                    scm {
-                        connection = 'scm:git:github.com/readdle/swift-android-gradle.git'
-                        developerConnection = 'scm:git:ssh://github.com/readdle/swift-android-gradle.git'
-                        url = 'https://github.com/readdle/swift-android-gradle'
-                    }
                 }
             }
         }
     }
+
+    repositories {
+        maven {
+            def releasesRepoUrl = layout.buildDirectory.dir('../../../maven_repos/releases')
+            def snapshotsRepoUrl = layout.buildDirectory.dir('../../../maven_repos/snapshots')
+            url = version.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        }
+    }
 }
 
-ext["signing.keyId"] = rootProject.ext["signing.keyId"]
-ext["signing.password"] = rootProject.ext["signing.password"]
-ext["signing.secretKeyRingFile"] = rootProject.ext["signing.secretKeyRingFile"]
+//signing {
+//    sign publishing.publications.mavenJava
+//}
 
-signing {
-    sign publishing.publications
+javadoc {
+    if (JavaVersion.current().isJava9Compatible()) {
+        options.addBooleanOption('html5', true)
+    }
 }
